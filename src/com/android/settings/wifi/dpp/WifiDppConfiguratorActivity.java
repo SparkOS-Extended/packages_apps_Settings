@@ -16,6 +16,8 @@
 
 package com.android.settings.wifi.dpp;
 
+import static android.os.UserManager.DISALLOW_ADD_WIFI_CONFIG;
+
 import android.app.settings.SettingsEnums;
 import android.content.Context;
 import android.content.Intent;
@@ -99,6 +101,10 @@ public class WifiDppConfiguratorActivity extends WifiDppBaseActivity implements
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        if (!isAddWifiConfigAllowed(getApplicationContext())) {
+            finish();
+            return;
+        }
 
         if (savedInstanceState != null) {
             String qrCode = savedInstanceState.getString(KEY_QR_CODE);
@@ -401,5 +407,15 @@ public class WifiDppConfiguratorActivity extends WifiDppBaseActivity implements
         final UserManager userManager = context.getSystemService(UserManager.class);
         if (userManager == null) return false;
         return userManager.isGuestUser();
+    }
+
+    @VisibleForTesting
+    static boolean isAddWifiConfigAllowed(Context context) {
+        UserManager userManager = context.getSystemService(UserManager.class);
+        if (userManager != null && userManager.hasUserRestriction(DISALLOW_ADD_WIFI_CONFIG)) {
+            Log.e(TAG, "The user is not allowed to add Wi-Fi configuration.");
+            return false;
+        }
+        return true;
     }
 }
