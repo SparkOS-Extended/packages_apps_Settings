@@ -18,6 +18,7 @@ package com.android.settings.localepicker;
 
 import android.app.FragmentTransaction;
 import android.app.LocaleManager;
+import android.content.Context;
 import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Bundle;
@@ -32,6 +33,7 @@ import android.widget.ListView;
 import com.android.internal.app.LocalePickerWithRegion;
 import com.android.internal.app.LocaleStore;
 import com.android.settings.R;
+import com.android.settings.applications.AppInfoBase;
 import com.android.settings.applications.AppLocaleUtil;
 import com.android.settings.applications.appinfo.AppLocaleDetails;
 import com.android.settings.core.SettingsBaseActivity;
@@ -60,8 +62,15 @@ public class AppLocalePickerActivity extends SettingsBaseActivity
             finish();
             return;
         }
-
-        if (!canDisplayLocaleUi()) {
+        mContextAsUser = this;
+        if (getIntent().hasExtra(AppInfoBase.ARG_PACKAGE_UID)) {
+            int uid = getIntent().getIntExtra(AppInfoBase.ARG_PACKAGE_UID, -1);
+            if (uid != -1) {
+                UserHandle userHandle = UserHandle.getUserHandleForUid(uid);
+                mContextAsUser = createContextAsUser(userHandle, 0);
+            }
+        }
+        if (!canDisplayLocaleUi() || mContextAsUser.getUserId() != UserHandle.myUserId()) {
             Log.w(TAG, "Not allow to display Locale Settings UI.");
             finish();
             return;
@@ -158,8 +167,8 @@ public class AppLocalePickerActivity extends SettingsBaseActivity
     }
 
     private boolean canDisplayLocaleUi() {
-        return AppLocaleUtil.canDisplayLocaleUi(this, mPackageName,
-                getPackageManager().queryIntentActivities(AppLocaleUtil.LAUNCHER_ENTRY_INTENT,
-                        PackageManager.GET_META_DATA));
+        return AppLocaleUtil.canDisplayLocaleUi(mContextAsUser, mPackageName,
+                mContextAsUser.getPackageManager().queryIntentActivities(
+                        AppLocaleUtil.LAUNCHER_ENTRY_INTENT, PackageManager.GET_META_DATA));
     }
 }
